@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messenger</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="chat-container">
+        <h1>Messenger</h1> 
+
+        <input id="message" autocomplete="off" placeholder="Type your message">
+        <button id="send">Send</button>
+        <p id="typing"></p>
+        <ul id="messages"></ul>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let typingTimeout;
+        let isTyping = false; 
+
+        // Confirm connection//
+        socket.on('connect', () => {
+            console.log('Connected to the server');
+        });
+
+        // Handle message sending//
+        document.getElementById('send').onclick = () => {
+            const message = document.getElementById('message').value;
+            if (message.trim() !== '') { 
+                socket.emit('message', message); 
+                document.getElementById('message').value = ''; 
+                document.getElementById('typing').textContent = ''; 
+                isTyping = false;
+            }
+        };
+        socket.on('message', (msg) => {
+            const item = document.createElement('li');
+            item.textContent = msg;
+            document.getElementById('messages').appendChild(item);
+        });
+
+        // Emit typing notification with state control//
+        document.getElementById('message').addEventListener('input', () => {
+            if (!isTyping) {
+                isTyping = true;
+                socket.emit('typing', 'A user is typing...');
+            }
+            clearTimeout(typingTimeout); 
+            typingTimeout = setTimeout(() => {
+                isTyping = false;
+                socket.emit('typing', ''); 
+            }, 1000);
+        });
+
+        // Display typing notifications//
+        socket.on('typing', (msg) => {
+            document.getElementById('typing').textContent = msg;
+        });
+    </script>
+</body>
+</html>
